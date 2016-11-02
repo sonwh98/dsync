@@ -3,7 +3,8 @@
             [com.kaicode.dsync.db :as db]
             [com.kaicode.wocket.server :as ws :refer [process-msg]]
             [com.kaicode.mercury :as m]
-            [clojure.walk :as w]))
+            [clojure.walk :as w]
+            [clojure.tools.logging :as log]))
 
 (defn entity [id]
   (d/entity (db/get-db) id))
@@ -78,7 +79,7 @@
                                           (or (= cmd :db/retract)
                                               (= cmd :db/retractEntity)))))
                                  tx)]
-         (println "tx" tx)
+         (log/debug "tx" tx)
          (db/transact tx)
          (doseq [[query ws-client-channels] @query->ws-client-channels
                  :let [query-result (-> query db/q dissoc-db-id)]]
@@ -88,7 +89,7 @@
                (ws/send! a-ws [:retract retractions]))
              (ws/send! a-ws [:remote-q-result [query query-result]]))))
        (catch Exception ex (let [msg [:remote-transact-error [tx-from-client (. ex toString)]]]
-                             (println msg)
+                             (log/error msg)
                              (ws/send! client-websocket-channel msg)))))
 
 (defn entity+
