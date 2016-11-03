@@ -88,7 +88,7 @@
 
 (defn entity [id]
   #?(:clj (d/entity (get-db) id))
-  #?(:cljs (d/entity @(get-db) id)))
+  #?(:cljs (d/entity (get-db) id)))
 
 (defn q
   "wrapper around d/q so that you don't have to pass in the current database"
@@ -155,5 +155,5 @@
   (q '[:find [(pull ?e [*]) ...] :in $ ?namespace :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "type")]] namespace)
   (q '[:find [(pull ?e [*]) ...] :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "type")]])
 
-  
+  (q (create-datascript-find-in-namespace "type" '[* {:type/items [*]}]) namespace)  
   )
