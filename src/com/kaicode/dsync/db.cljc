@@ -133,8 +133,7 @@
   (when-not (empty? m)
     (let [id (or (:system/id m) (:db/id m))]
       (->> [:system/id id]
-           (d/entity #?(:cljs @(get-db))
-                     #?(:clj (get-db)))
+           (d/entity (get-db))
            touch))))
 
 (defn entity->map [e]
