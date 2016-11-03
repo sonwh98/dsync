@@ -71,7 +71,7 @@
 
 (defn get-db []
   #?(:clj (d/db conn))
-  #?(:cljs conn))
+  #?(:cljs @conn))
 
 (defn squuid []
   #?(:clj (str (d/squuid)))
@@ -83,7 +83,8 @@
 
 (defn transact [tx]
   #?(:clj (d/transact conn tx))
-  #?(:cljs (d/transact! conn tx)))
+  #?(:cljs (let [tx-report (d/transact! conn tx)]
+             tx-report)))
 
 (defn entity [id]
   #?(:clj (d/entity (get-db) id))
@@ -117,6 +118,17 @@
     (create-find pull-pattern
                  where-pattern)))
 
+(defn create-datascript-find-in-namespace [entity-namespace pull-pattern]
+  (let [my-ns [(concat '(= ?ns) [entity-namespace])]
+        where-pattern (vec (concat '[[?e ?a] [(?namespace ?a) ?ns]] [my-ns]))
+        find (vec (concat [:find]
+                          [[(create-pull pull-pattern)
+                            '...]]
+                          '[:in $ ?namespace]
+                          [:where] where-pattern))
+        ]
+    find))
+
 (defn map->entity [m]
   (when-not (empty? m)
     (let [id (or (:system/id m) (:db/id m))]
@@ -127,3 +139,21 @@
 
 (defn entity->map [e]
   (into {} e))
+
+(comment
+  (q '[:find ?e :in $ ?namespace :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "item")]] namespace)
+  (q '[:find ?e :where [?e :item/name _]])
+
+  (d/q '[:find ?e :where [?e :item/name "Chocolate"]] @conn)
+  (q '[:find ?e :where [?e :item/name "Chocolate"]])
+
+  (q '[:find ?e :in $ ?namespace :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "item")]] namespace)
+  
+  (q '[:find ?e :in $ ?namespace :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "type")]] namespace)
+
+  (q '[:find [(pull ?e [*]) ...] :in $ ?namespace :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "type")]] namespace)
+  (q '[:find [(pull ?e [*]) ...] :in $ ?namespace :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "type")]] namespace)
+  (q '[:find [(pull ?e [*]) ...] :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "type")]])
+
+  
+  )
