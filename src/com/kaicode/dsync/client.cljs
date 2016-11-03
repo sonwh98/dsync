@@ -35,14 +35,10 @@
     channel))
 
 (defn datomic->datascript [query]
-  (let [in-result-channel (remote-q-channel query)
-        out-result-channel (chan 1)]
-    (go-loop []
-      (let [result (<! in-result-channel)]
-        (db/transact result)
-        (>! out-result-channel result))
-      (recur))
-    out-result-channel))
+  (go (let [in-result-channel (remote-q-channel query)
+            result (<! in-result-channel)
+            tx-report (db/transact result)]
+        tx-report)))
 
 (defn default-save-fn [content row column-kw]
   (let [old-content (column-kw @row)
