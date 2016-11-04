@@ -25,8 +25,8 @@
 (defmethod process-msg :schema [[_ schema-from-datomic]]
   (m/broadcast [:schema/avaiable schema-from-datomic]))
 
-(defmethod process-msg :retract [[_ retract-cmd]]
-  (db/transact retract-cmd))
+(defmethod process-msg :transact [[_ tx]]
+  (db/transact tx))
 
 (defn remote-q-channel [datalog-query]
   (let [channel (or (@query->channel datalog-query) (chan 10))]

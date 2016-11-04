@@ -71,23 +71,14 @@
 
 (defmethod process-msg :remote-transact [[client-websocket-channel [_ tx-from-client]]]
   (try (let [tx (->> tx-from-client macroexpand eval
-                     assoc-db-id
                      amount->float)
-             retractions (filter (fn [a-tx]
-                                   (and (vector? a-tx)
-                                        (let [cmd (first a-tx)]
-                                          (or (= cmd :db/retract)
-                                              (= cmd :db/retractEntity)))))
-                                 tx)]
-         (log/debug "tx" tx)
-         (db/transact tx)
-         (doseq [[query ws-client-channels] @query->ws-client-channels
-                 :let [query-result (-> query db/q dissoc-db-id)]]
+             tx-with-db-id (assoc-db-id tx)]
+         (log/debug "tx-with-db-id" tx-with-db-id)
+         (db/transact tx-with-db-id)
+         (doseq [[query ws-client-channels] @query->ws-client-channels]
            (doseq [a-ws ws-client-channels
                    :when (not= a-ws client-websocket-channel)]
-             (when-not (empty? retractions) 
-               (ws/send! a-ws [:retract retractions]))
-             (ws/send! a-ws [:remote-q-result [query query-result]]))))
+             (ws/send! a-ws [:transact tx]))))
        (catch Exception ex (let [msg [:remote-transact-error [tx-from-client (. ex toString)]]]
                              (log/error msg)
                              (ws/send! client-websocket-channel msg)))))
