@@ -1,4 +1,6 @@
 (ns com.kaicode.dsync.db
+  #?(:cljs (:require-macros [cljs.core.async.macros :refer [go-loop go]]))
+  
   (:require #?(:clj [datomic.api :as d])
             #?(:cljs [datascript.core :as d])
 
@@ -12,8 +14,10 @@
 
             #?(:cljs [cljs-uuid-utils.core :as uuid])
             #?(:cljs [com.kaicode.mercury :as m])
+            #?(:cljs [com.kaicode.tily :as tily])
             #?(:cljs [com.kaicode.wocket.client :as ws :refer [process-msg]])
-            [mount.core :as mount]))
+            [mount.core :as mount]
+            [clojure.core.async :refer [<! >! chan]]))
 
 (declare conn)
 
@@ -81,11 +85,6 @@
   #?(:clj (squuid))
   #?(:cljs (-> (squuid) uuid/uuid-string)))
 
-(defn transact [tx]
-  #?(:clj (d/transact conn tx))
-  #?(:cljs (let [tx-report (d/transact! conn tx)]
-             tx-report)))
-
 (defn entity [id]
   #?(:clj (d/entity (get-db) id))
   #?(:cljs (d/entity (get-db) id)))
@@ -98,6 +97,29 @@
         variable-bindings (rest params)
         params (vec (concat query+db variable-bindings))]
     (apply d/q params)))
+
+#?(:cljs
+   (defonce query-params->channel (atom {})))
+
+(defn transact [tx]
+  #?(:clj (d/transact conn tx))
+  #?(:cljs (let [tx-report (d/transact! conn tx)]
+             (doseq [[query-params channel] @query-params->channel
+                     :let [q-params (tily/insert-at query-params 1 (get-db))
+                           query-result (apply d/q q-params)]]
+               (go (>! channel query-result)))
+             tx-report)))
+
+#?(:cljs
+   (defn q-channel
+     "like q except returns a channel containing the result of the (q params)"
+     [& params]
+     (let [channel (@query-params->channel params)]
+       (if channel
+         channel
+         (let [new-channel (chan 2)]
+           (tily/set-atom! query-params->channel [params] new-channel)
+           new-channel)))))
 
 (defn touch [e]
   (d/touch e))
@@ -125,8 +147,7 @@
                           [[(create-pull pull-pattern)
                             '...]]
                           '[:in $ ?namespace]
-                          [:where] where-pattern))
-        ]
+                          [:where] where-pattern))]
     find))
 
 (defn map->entity [m]
