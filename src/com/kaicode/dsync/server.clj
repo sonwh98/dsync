@@ -29,12 +29,15 @@
 (defonce query->ws-client-channels (atom {}))
 
 (defn- subscribe [client-websocket-channel _ query]
-  (swap! query->ws-client-channels update-in [query] conj client-websocket-channel))
+  (swap! query->ws-client-channels update-in [query] (fn [ws-set]
+                                                       (if ws-set
+                                                         (conj ws-set client-websocket-channel)
+                                                         #{ws-set} ))))
 
 (defn- unsubscribe [disconnected-client-websocket-channel]
   (doseq [[query socket-channels] @query->ws-client-channels
           :let [connected-ws-client-channels (filter (fn [sc] (not= sc disconnected-client-websocket-channel))
-                                        socket-channels)]]
+                                                     socket-channels)]]
     (swap! query->ws-client-channels update-in [query]
            (constantly connected-ws-client-channels))))
 
@@ -72,13 +75,13 @@
 (defmethod process-msg :remote-transact [[client-websocket-channel [_ tx-from-client]]]
   (try (let [tx (->> tx-from-client macroexpand eval
                      amount->float)
-             tx-with-db-id (assoc-db-id tx)]
+             tx-with-db-id (assoc-db-id tx)
+             client-websocket-channels (->> @query->ws-client-channels vals flatten distinct
+                                            (remove #(= % client-websocket-channel)))]
          (log/debug "tx-with-db-id" tx-with-db-id)
          (db/transact tx-with-db-id)
-         (doseq [[query ws-client-channels] @query->ws-client-channels]
-           (doseq [a-ws ws-client-channels
-                   :when (not= a-ws client-websocket-channel)]
-             (ws/send! a-ws [:transact tx]))))
+         (doseq [a-ws client-websocket-channels]
+           (ws/send! a-ws [:transact tx])))
        (catch Exception ex (let [msg [:remote-transact-error [tx-from-client (. ex toString)]]]
                              (log/error msg)
                              (ws/send! client-websocket-channel msg)))))
