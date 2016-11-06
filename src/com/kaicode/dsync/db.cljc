@@ -17,7 +17,8 @@
             #?(:cljs [com.kaicode.tily :as tily])
             #?(:cljs [com.kaicode.wocket.client :as ws :refer [process-msg]])
             [mount.core :as mount]
-            [clojure.core.async :refer [<! >! chan]]))
+            [clojure.core.async :as a :refer [<! >! chan]]
+            [clojure.walk :as w]))
 
 (declare conn)
 
@@ -98,16 +99,57 @@
         params (vec (concat query+db variable-bindings))]
     (apply d/q params)))
 
+(defn extract-kw [col]
+  (->> col
+       (w/postwalk (fn [e]
+                     (cond
+                       (or (keyword? e)
+                           (seq? e)
+                           (sequential? e)) e
+                       (map? e) (concat (keys e) (extract-kw (vals e)))
+                       :else nil)))
+       flatten
+       (remove nil?)))
+
+(defn extract-entity-kw [col]
+  (->> col extract-kw (remove #(let [n (namespace %)]
+                                 (or (= n "system")
+                                     (= n "db")
+                                     (= :find %)
+                                     (= :in %)
+                                     (= :where %))))))
+
 #?(:cljs
    (defonce query-params->channel (atom {})))
 
+#?(:cljs
+   (defonce query-params-buffer (atom [])))
+
+#?(:cljs
+   (go-loop []
+     (doseq [query-params (distinct @query-params-buffer)
+             :let [q-params (tily/insert-at query-params 1 (get-db))
+                   channel (@query-params->channel query-params)]]
+       
+       (>! channel (apply d/q q-params)))
+     (reset! query-params-buffer [])
+     (<! (a/timeout 2000))
+     (recur)))
+
 (defn transact [tx]
   #?(:clj (d/transact conn tx))
-  #?(:cljs (let [tx-report (d/transact! conn tx)]
+  #?(:cljs (let [tx-report (d/transact! conn tx)
+                 tx-kws (extract-entity-kw tx)
+                 run-query? (fn [query-kws]
+                              (some (fn [tx-kw]
+                                      (or (tily/is-contained? tx-kw :in query-kws)
+                                          (= tx-kw :db.fn/retractEntity)))
+                                    tx-kws))]
              (doseq [[query-params channel] @query-params->channel
-                     :let [q-params (tily/insert-at query-params 1 (get-db))
-                           query-result (apply d/q q-params)]]
-               (go (>! channel query-result)))
+                     :let [query (first query-params)
+                           query-kws (extract-entity-kw query)]
+                     :when (run-query? query-kws)]
+               (swap! query-params-buffer conj query-params))
              tx-report)))
 
 #?(:cljs
@@ -176,5 +218,5 @@
   (q '[:find [(pull ?e [*]) ...] :in $ ?namespace :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "type")]] namespace)
   (q '[:find [(pull ?e [*]) ...] :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "type")]])
 
-  (q (create-datascript-find-in-namespace "type" '[* {:type/items [*]}]) namespace)  
+  (q (create-datascript-find-in-namespace "type" '[* {:type/items [*]}]) namespace)
   )
