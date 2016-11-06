@@ -77,7 +77,8 @@
                      amount->float)
              tx-with-db-id (assoc-db-id tx)
              client-websocket-channels (->> @query->ws-client-channels vals flatten distinct
-                                            (remove #(= % client-websocket-channel)))]
+                                            (remove #(or (= % client-websocket-channel)
+                                                         (nil? %))))]
          (log/debug "tx-with-db-id" tx-with-db-id)
          (db/transact tx-with-db-id)
          (doseq [a-ws client-websocket-channels]
