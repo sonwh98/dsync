@@ -44,10 +44,6 @@
 (m/on :client-websocket-channel-closed (fn [[_ client-websocket-channel]]
                                          (unsubscribe client-websocket-channel)))
 
-(defmethod process-msg :remote-q [[client-websocket-channel [_ query]]]
-  (subscribe client-websocket-channel :to query)
-  (ws/send! client-websocket-channel [:remote-q-result [query (db/q query)]]))
-
 (defn assoc-db-id [m]
   (w/postwalk (fn [m]
                 (if (map? m)
@@ -71,6 +67,10 @@
                  (and (sequential? %)) (mapv dissoc-db-id %)
                  :else %)
               m))
+
+(defmethod process-msg :remote-q [[client-websocket-channel [_ query]]]
+  (subscribe client-websocket-channel :to query)
+  (ws/send! client-websocket-channel [:remote-q-result [query (-> query db/q dissoc-db-id)]]))
 
 (defmethod process-msg :remote-transact [[client-websocket-channel [_ tx-from-client]]]
   (try (let [tx (->> tx-from-client macroexpand eval
