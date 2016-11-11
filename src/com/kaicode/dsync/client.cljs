@@ -3,7 +3,8 @@
   (:require [com.kaicode.wocket.client :as ws :refer [process-msg]]
             [cljs.core.async :refer [<! >! put! chan]]
             [com.kaicode.dsync.db :as db]
-            [com.kaicode.mercury :as m]))
+            [com.kaicode.mercury :as m]
+            [com.kaicode.tily :as tily]))
 
 (def query->channel (atom {}))
 
@@ -15,12 +16,8 @@
     (put! channel remote-result)))
 
 (defn remote-transact [tx]
-  (try
-    (db/transact tx)
-    (ws/send! [:remote-transact tx])
-    (catch js/Error e (do
-                        (println e)
-                        (m/broadcast [tx e])))))
+  (db/transact tx)
+  (ws/send! [:remote-transact tx]))
 
 (defmethod process-msg :schema [[_ schema-from-datomic]]
   (m/broadcast [:schema/avaiable schema-from-datomic]))
@@ -49,11 +46,13 @@
             tx (if sys-id
                  (merge new-datom {:system/id sys-id})
                  (let [sys-id (db/system-id)]
-                   (swap! row update-in [:system/id] (constantly sys-id))
                    (merge new-datom {:system/id sys-id
                                      :system/time-created (js/Date.)})))]
-        (remote-transact [tx])
-        (swap! row update-in [column-kw] (constantly content))))))
+        (try
+          (remote-transact [tx])
+          (catch js/Error e (do
+                              (tily/set-atom! row [column-kw] " ")
+                              (throw e))))))))
 
 (defn delete-rows-fn [rows]
   (println "delete ros")
