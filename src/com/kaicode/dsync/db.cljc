@@ -177,15 +177,17 @@
                [:where] where-pattern)))
 
 
-(defn create-datomic-find-in-namespace [entity-namespace pull-pattern]
+(defn create-datomic-find-in-namespace [entity-namespace pull-pattern & where]
   (let [my-ns [(concat '(= ?ns) [entity-namespace])]
-        where-pattern (vec (concat  '[[?e ?aid ?v] [?aid :db/ident ?a] [(namespace ?a) ?ns]] [my-ns]))]
+        where-pattern (vec (concat  '[[?e ?aid ?v] [?aid :db/ident ?a] [(namespace ?a) ?ns]] [my-ns] where))
+        where-patttern (into where-pattern where)]
     (create-find pull-pattern
                  where-pattern)))
 
-(defn create-datascript-find-in-namespace [entity-namespace pull-pattern]
+(defn create-datascript-find-in-namespace [entity-namespace pull-pattern & where]
   (let [my-ns [(concat '(= ?ns) [entity-namespace])]
         where-pattern (vec (concat '[[?e ?a] [(?namespace ?a) ?ns]] [my-ns]))
+        where-pattern (into where-pattern where)
         find (vec (concat [:find]
                           [[(create-pull pull-pattern)
                             '...]]
@@ -218,5 +220,5 @@
   (q '[:find [(pull ?e [*]) ...] :in $ ?namespace :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "type")]] namespace)
   (q '[:find [(pull ?e [*]) ...] :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "type")]])
 
-  (q (create-datascript-find-in-namespace "type" '[* {:type/items [*]}]) namespace)
+  (db/create-datascript-find-in-namespace "type" '[* {:type/items [*]}] '[foo 1] '[foo 2])
   )
