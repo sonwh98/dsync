@@ -53,13 +53,16 @@
                   m))
               m))
 
-(defn amount->float [m]
+(defn number->double [m]
   (w/postwalk (fn [m]
-                (if (and (map? m)
-                         (contains? m :product/amount))
-                  (update-in m [:product/amount] float)
+                (if (map? m)
+                  (cond
+                    (contains? m :product/amount) (update-in m [:product/amount] double)
+                    (contains? m :item/price) (update-in m [:item/price] double)
+                    :else m)
                   m))
               m))
+
 
 (defn dissoc-db-id [m]
   (w/postwalk #(cond
@@ -74,7 +77,7 @@
 
 (defmethod process-msg :remote-transact [[client-websocket-channel [_ tx-from-client]]]
   (try (let [tx (->> tx-from-client macroexpand eval
-                     amount->float)
+                     number->double)
              tx-with-db-id (assoc-db-id tx)
              client-websocket-channels (->> @query->ws-client-channels vals flatten distinct
                                             (remove #(or (= % client-websocket-channel)
