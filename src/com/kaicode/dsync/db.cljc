@@ -99,6 +99,11 @@
         params (vec (concat query+db variable-bindings))]
     (apply d/q params)))
 
+(defn conjugate [kw]
+  (let [nspace (namespace kw)
+        n (name kw)]
+    (keyword (str nspace "/_" n))))
+
 (defn extract-kw [col]
   (->> col
        (w/postwalk (fn [e]
@@ -109,6 +114,7 @@
                        (map? e) (concat (keys e) (extract-kw (vals e)))
                        :else nil)))
        flatten
+       distinct
        (remove nil?)))
 
 (defn extract-entity-kw [col]
@@ -141,10 +147,13 @@
   #?(:cljs (let [tx-report (d/transact! conn tx)
                  tx-kws (extract-entity-kw tx)
                  run-query? (fn [query-kws]
-                              (some (fn [tx-kw]
-                                      (or (tily/is-contained? tx-kw :in query-kws)
-                                          (= tx-kw :db.fn/retractEntity)))
-                                    tx-kws))]
+                              (let [r (some (fn [tx-kw]
+                                              (or (tily/is-contained? tx-kw :in query-kws)
+                                                  (tily/is-contained? (conjugate tx-kw) :in query-kws)
+                                                  (= tx-kw :db.fn/retractEntity)))
+                                            tx-kws)]
+
+                                r))]
              (doseq [[query-params channel] @query-params->channel
                      :let [query (first query-params)
                            query-kws (extract-entity-kw query)]
