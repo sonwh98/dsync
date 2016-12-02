@@ -56,7 +56,7 @@
 
 (let [coerce-double (fn [x]
                       (cond
-                        (double? x) x
+                        (number? x) (double x)
                         (string? x) (try
                                       (Double/parseDouble x)
                                       (catch Exception e
@@ -91,6 +91,7 @@
 (defmethod process-msg :remote-transact [[client-websocket-channel [_ tx-from-client]]]
   (try (let [tx (->> tx-from-client macroexpand eval
                      number->double)
+             _ (println "tx" tx)
              tx-with-db-id (assoc-db-id tx)
              client-websocket-channels (->> @query->ws-client-channels vals flatten distinct
                                             (remove #(or (= % client-websocket-channel)
