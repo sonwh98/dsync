@@ -4,7 +4,8 @@
             [com.kaicode.wocket.server :as ws :refer [process-msg]]
             [com.kaicode.mercury :as m]
             [clojure.walk :as w]
-            [clojure.tools.logging :as log]))
+            [clojure.tools.logging :as log]
+            [clojure.spec :as s]))
 
 (defn entity [id]
   (d/entity (db/get-db) id))
@@ -53,16 +54,28 @@
                   m))
               m))
 
+(let [coerce-double (fn [x]
+                      (cond
+                        (double? x) x
+                        (string? x) (try
+                                      (Double/parseDouble x)
+                                      (catch Exception e
+                                        :clojure.spec/invalid))
+                        :else :clojure.spec/invalid))
+      c (s/conformer coerce-double)]
+  (s/def :item/price c)
+  (s/def :product/amount c))
+
+
 (defn number->double [m]
   (w/postwalk (fn [m]
                 (if (map? m)
                   (cond
-                    (contains? m :product/amount) (update-in m [:product/amount] double)
-                    (contains? m :item/price) (update-in m [:item/price] double)
+                    (contains? m :product/amount) (update-in m [:product/amount] #(s/conform :product/amount %))
+                    (contains? m :item/price) (update-in m [:item/price] #(s/conform :item/price %))
                     :else m)
                   m))
               m))
-
 
 (defn dissoc-db-id [m]
   (w/postwalk #(cond
