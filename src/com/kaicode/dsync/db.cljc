@@ -152,7 +152,7 @@
                                                   (tily/is-contained? (conjugate tx-kw) :in query-kws)
                                                   (= tx-kw :db.fn/retractEntity)))
                                             tx-kws)]
-
+                                ;;(println r ": " tx-kws query-kws)
                                 r))]
              (doseq [[query-params channel] @query-params->channel
                      :let [query (first query-params)
