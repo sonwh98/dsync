@@ -15,7 +15,7 @@
             #?(:cljs [cljs-uuid-utils.core :as uuid])
             #?(:cljs [com.kaicode.mercury :as m])
             
-            #?(:cljs [com.kaicode.wocket.client :as ws :refer [process-msg]])
+            #?(:cljs [com.kaicode.wocket.client :as ws])
 
             [com.kaicode.tily :as tily]
             [mount.core :as mount]
