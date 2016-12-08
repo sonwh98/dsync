@@ -14,8 +14,10 @@
 
             #?(:cljs [cljs-uuid-utils.core :as uuid])
             #?(:cljs [com.kaicode.mercury :as m])
-            #?(:cljs [com.kaicode.tily :as tily])
+            
             #?(:cljs [com.kaicode.wocket.client :as ws :refer [process-msg]])
+
+            [com.kaicode.tily :as tily]
             [mount.core :as mount]
             [clojure.core.async :as a :refer [<! >! chan]]
             [clojure.walk :as w]))
@@ -93,10 +95,8 @@
 (defn q
   "wrapper around d/q so that you don't have to pass in the current database"
   [& params]
-  (let [query (first params)
-        query+db [query (get-db)]
-        variable-bindings (rest params)
-        params (vec (concat query+db variable-bindings))]
+  (let [params (into [] params)
+        params (tily/insert-at params 1 (get-db))]
     (apply d/q params)))
 
 (defn conjugate [kw]
