@@ -27,21 +27,14 @@
         (entity? v) (touch-all (a e)))))
   e)
 
-(def query->ws-client-channels (atom {}))
-(comment
-  (keys @query->ws-client-channels)
-  ([[:find [(pull ?e [:system/id :system/time-created :item/name :item/description :item/price :item/photo #:category{:_items [:system/id :category/name :category/photo]}]) ...] :where [?e ?aid ?v] [?aid :db/ident ?a] [(namespace ?a) ?ns] [(= ?ns "item")]]]
-   [[:find [(pull ?c [:system/id :category/name :category/description :category/photo #:category{:items [:item/name :item/description :item/price :item/photo *]} #:category{:sub-categories ...}]) ...] :where [?c :category/name "root-item-category"]]]
-   [[:find [(pull ?e [:system/id :customer/name #:customer{:address [:system/id :address/line1 :address/line2 :address/city :address/state :address/zip #:address{:country [*]}]}]) ...] :where [?e ?aid ?v] [?aid :db/ident ?a] [(namespace ?a) ?ns] [(= ?ns "customer")]]]
-   [[:find [(pull ?e [:system/id :person/first-name :person/last-name :person/email :person/phone #:person{:address [:system/id :address/line1 :address/line2 :address/city :address/state :address/zip #:address{:country [*]}]}]) ...] :where [?e ?aid ?v] [?aid :db/ident ?a] [(namespace ?a) ?ns] [(= ?ns "person")]]]
-   [[:find [(pull ?e [:system/id :system/time-created #:product{:item [:system/id :system/time-created :item/name #:category{:_items [:system/id :category/name :category/photo #:category{:items [:item/name]}]}]} :product/amount #:product{:customer [:system/id :customer/name]}]) ...] :where [?e ?aid ?v] [?aid :db/ident ?a] [(namespace ?a) ?ns] [(= ?ns "product")]]])
-  )
+(defonce query->ws-client-channels (atom {}))
+
 (defn- subscribe [client-websocket-channel _ query]
   (swap! query->ws-client-channels update-in [query] (fn [ws-set]
-                                                       (prn "ws-set" ws-set)
+                                                       (println "ws-set" ws-set)
                                                        (if ws-set
                                                          (conj ws-set client-websocket-channel)
-                                                         #{client-websocket-channel}))))
+                                                         #{client-websocket-channel} ))))
 
 (defn- unsubscribe [disconnected-client-websocket-channel]
   (doseq [[query socket-channels] @query->ws-client-channels
@@ -92,17 +85,9 @@
                  :else %)
               m))
 
-(defmethod process-msg :remote-q [[client-websocket-channel [_ query params :as foo]]]
-  (prn "foo" foo)
-  (prn "query" query)
-  (prn "params" params)
-  (let [query-params (into [query] params)
-        q-r (-> (apply db/q query-params)
-                dissoc-db-id)]
-    (subscribe client-websocket-channel :to query-params)
-    (prn "query-params" query-params)
-    (prn "q-r" q-r)
-    (ws/send! client-websocket-channel [:remote-q-result [query-params q-r]])))
+(defmethod process-msg :remote-q [[client-websocket-channel [_ query]]]
+  (subscribe client-websocket-channel :to query)
+  (ws/send! client-websocket-channel [:remote-q-result [query (-> query db/q dissoc-db-id)]]))
 
 (defmethod process-msg :remote-transact [[client-websocket-channel [_ tx-from-client]]]
   (try (let [tx (->> tx-from-client macroexpand eval
