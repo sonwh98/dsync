@@ -31,10 +31,9 @@
 
 (defn- subscribe [client-websocket-channel _ query]
   (swap! query->ws-client-channels update-in [query] (fn [ws-set]
-                                                       (println "ws-set" ws-set)
-                                                       (if ws-set
-                                                         (conj ws-set client-websocket-channel)
-                                                         #{client-websocket-channel} ))))
+                                                       (if (empty? ws-set)
+                                                         #{client-websocket-channel} 
+                                                         (conj ws-set client-websocket-channel)))))
 
 (defn- unsubscribe [disconnected-client-websocket-channel]
   (doseq [[query socket-channels] @query->ws-client-channels
