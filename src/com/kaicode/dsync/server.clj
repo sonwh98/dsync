@@ -84,6 +84,14 @@
                  :else %)
               m))
 
+(defmethod process-msg :q [[client-websocket-channel [m query & params]]]
+  (prn "query" query)
+  (let [q-params (into [query] params)
+        _ (prn "q-params" q-params)
+        q-r (apply db/q q-params)]
+    (prn "q-r" q-r)
+    (ws/send! client-websocket-channel [:q-result q-params q-r])))
+
 (defmethod process-msg :remote-q [[client-websocket-channel [_ query]]]
   (subscribe client-websocket-channel :to query)
   (ws/send! client-websocket-channel [:remote-q-result [query (-> query db/q dissoc-db-id)]]))
