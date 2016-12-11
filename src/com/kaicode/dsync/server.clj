@@ -88,7 +88,7 @@
   (prn "query" query)
   (let [q-params (into [query] params)
         _ (prn "q-params" q-params)
-        q-r (apply db/q q-params)]
+        q-r (->> q-params (apply db/q) dissoc-db-id)]
     (prn "q-r" q-r)
     (ws/send! client-websocket-channel [:q-result q-params q-r])))
 
