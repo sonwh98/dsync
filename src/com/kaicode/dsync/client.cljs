@@ -15,10 +15,6 @@
   (let [channel (@query->channel remote-q)]
     (put! channel remote-result)))
 
-(defmethod process-msg :q-result [[topic query+params-as-vec result]]
-  (let [channel (@query->channel query+params-as-vec)]
-    (put! channel result)))
-
 (defn remote-transact [tx]
   (db/transact tx)
   (ws/send! [:remote-transact tx]))
@@ -29,23 +25,14 @@
 (defmethod process-msg :transact [[_ tx]]
   (db/transact tx))
 
-(defn remote-q-channel [datalog-query]
+(defn remote-q-channel [datalog-query & params]
   (let [channel (or (@query->channel datalog-query) (chan 10))]
     (swap! query->channel update-in [datalog-query] (constantly channel))
     (ws/send! [:remote-q datalog-query])
     channel))
 
-(defn remote-q [query & params]
-  (let [query+params-as-vec (into [query] params)
-        channel (or (@query->channel query+params-as-vec) (chan 10))
-        cmd (into [:q query] params)]
-    (swap! query->channel update-in [query+params-as-vec] (constantly channel))
-    ;; (prn query+params-as-vec)
-    ;; (prn cmd)
-    (ws/send! cmd)
-    channel))
-
-(defn datomic->datascript [query]
+(defn datomic->datascript [query & params]
+  (prn "1")
   (go (let [in-result-channel (remote-q-channel query)
             result (<! in-result-channel)
             tx-report (db/transact result)]
@@ -73,14 +60,3 @@
   (let [transactions (vec (for [r rows]
                             [:db.fn/retractEntity [:system/id (:system/id r)]]))]
     (remote-transact transactions)))
-
-(comment
-  (ws/send! [:q '[:find ?p :in $ ?email :where [?p :person/email ?email]] "sonny.su@kaicode.com"])
-  (ws/send! [:q '[:find ?p :in $ ?email :where [?p :person/email ?email]] "sonny.su@kaicode.com" 1 2])
-
-  (remote-q '[:find ?p :in $ ?email :where [?p :person/email ?email]] "sonny.su@kaicode.com" 1 2)
-  (go (let [c (remote-q '[:find [(pull ?p [*]) ...] :in $ ?email :where [?p :person/email ?email]] "sonny.su@kaicode.com" 1 2)
-            r (<! c)]
-        (prn "r" r)
-        ))
-  )
