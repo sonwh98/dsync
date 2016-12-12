@@ -100,7 +100,7 @@
   (try (let [tx (->> tx-from-client macroexpand eval
                      number->double)
              tx-with-db-id (assoc-db-id tx)
-             client-websocket-channels (->> @query->ws-client-channels vals flatten distinct
+             client-websocket-channels (->> @ws/client-websocket-channels distinct
                                             (remove #(or (= % client-websocket-channel)
                                                          (nil? %))))]
          (log/debug "tx-with-db-id" tx-with-db-id)
