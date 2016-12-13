@@ -84,17 +84,11 @@
                  :else %)
               m))
 
-(defmethod process-msg :q [[client-websocket-channel [m query & params]]]
-  (prn "query" query)
-  (let [q-params (into [query] params)
-        _ (prn "q-params" q-params)
-        q-r (->> q-params (apply db/q) dissoc-db-id)]
-    (prn "q-r" q-r)
-    (ws/send! client-websocket-channel [:q-result q-params q-r])))
-
-(defmethod process-msg :remote-q [[client-websocket-channel [_ query]]]
+(defmethod process-msg :remote-q [[client-websocket-channel [_ query & params]]]
   (subscribe client-websocket-channel :to query)
-  (ws/send! client-websocket-channel [:remote-q-result [query (-> query db/q dissoc-db-id)]]))
+  (let [q-params (into [query] params)
+        q-r (->> q-params (apply db/q) dissoc-db-id)]
+    (ws/send! client-websocket-channel [:remote-q-result [q-params q-r]])))
 
 (defmethod process-msg :remote-transact [[client-websocket-channel [_ tx-from-client]]]
   (try (let [tx (->> tx-from-client macroexpand eval

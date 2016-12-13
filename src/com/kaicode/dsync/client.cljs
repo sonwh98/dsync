@@ -11,8 +11,8 @@
 (defmethod process-msg :remote-transact-error [[tx error]]
   (m/broadcast [tx error]))
 
-(defmethod process-msg :remote-q-result [[_ [remote-q remote-result]]]
-  (let [channel (@query->channel remote-q)]
+(defmethod process-msg :remote-q-result [[_ [query+params remote-result]]]
+  (let [channel (@query->channel query+params)]
     (put! channel remote-result)))
 
 (defn remote-transact [tx]
@@ -25,15 +25,16 @@
 (defmethod process-msg :transact [[_ tx]]
   (db/transact tx))
 
-(defn remote-q-channel [datalog-query & params]
-  (let [channel (or (@query->channel datalog-query) (chan 10))]
-    (swap! query->channel update-in [datalog-query] (constantly channel))
-    (ws/send! [:remote-q datalog-query])
+(defn remote-q-channel [query & params]
+  (let [query+params+as-vec (into [query] params)
+        channel (or (@query->channel query+params+as-vec) (chan 10))
+        cmd (into [:remote-q query] params)]
+    (swap! query->channel update-in [query+params+as-vec] (constantly channel))
+    (ws/send! cmd)
     channel))
 
 (defn datomic->datascript [query & params]
-  (prn "1")
-  (go (let [in-result-channel (remote-q-channel query)
+  (go (let [in-result-channel (remote-q-channel query params)
             result (<! in-result-channel)
             tx-report (db/transact result)]
         tx-report)))
