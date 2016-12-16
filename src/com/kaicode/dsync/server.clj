@@ -126,7 +126,7 @@
   remove :db/valueType if ent is not a component."
   [ent]
   (cond
-    (= (:db/isComponent ent) true) (update-in ent [:db/valueType] (fn [val] :db.type/ref))
+    (= (:db/isComponent ent) true) (update-in ent [:db/valueType] (constantly :db.type/ref))
     (= (:db/valueType ent) :db.type/ref) ent
     :else (dissoc ent :db/valueType)))
 
