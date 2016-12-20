@@ -16,7 +16,6 @@
     (put! channel remote-result)))
 
 (defn remote-transact [tx]
-  (db/transact tx)
   (ws/send! [:remote-transact tx]))
 
 (defmethod process-msg :schema [[_ schema-from-datomic]]
