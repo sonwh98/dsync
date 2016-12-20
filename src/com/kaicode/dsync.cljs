@@ -15,8 +15,16 @@
   (let [channel (@query->channel query+params)]
     (put! channel remote-result)))
 
-(defn remote-transact [tx]
+(defn remote-transact
+  "send transaction to remote datomic"
+  [tx]
   (ws/send! [:remote-transact tx]))
+
+(defn transact
+  "transact to local datascript and remote datomic"
+  [tx]
+  (db/transact tx)
+  (remote-transact tx))
 
 (defmethod process-msg :schema [[_ schema-from-datomic]]
   (m/broadcast [:schema/avaiable schema-from-datomic]))
