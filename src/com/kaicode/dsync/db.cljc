@@ -89,8 +89,7 @@
   #?(:cljs (-> (squuid) uuid/uuid-string)))
 
 (defn entity [id]
-  #?(:clj (d/entity (get-db) id))
-  #?(:cljs (d/entity (get-db) id)))
+  (d/entity (get-db) id))
 
 (defn q
   "wrapper around d/q so that you don't have to pass in the current database"
