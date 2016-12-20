@@ -66,6 +66,10 @@
                  conn)
        :stop  (disconnect conn))))
 
+(defn get-db []
+  #?(:clj (d/db conn))
+  #?(:cljs @conn))
+
 #?(:cljs
    (do
      (def when-ds-ready (m/whenever :datascript/ready))
@@ -99,9 +103,7 @@
        (<! (a/timeout 2000))
        (recur))))
 
-(defn get-db []
-  #?(:clj (d/db conn))
-  #?(:cljs @conn))
+
 
 (defn squuid []
   #?(:clj (str (d/squuid)))
