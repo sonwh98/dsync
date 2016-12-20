@@ -175,10 +175,10 @@
 (defn touch [e]
   (d/touch e))
 
-(defn create-pull  [pattern]
+(defn- create-pull [pattern]
   (concat '(pull ?e) [pattern]))
 
-(defn create-find [pull-pattern where-pattern]
+(defn- create-find [pull-pattern where-pattern]
   (vec (concat [:find]
                [[(create-pull pull-pattern)
                  '...]]
@@ -205,7 +205,7 @@
 
 (defn map->entity [m]
   (when-not (empty? m)
-    (let [id (or (:system/id m) (:db/id m))]
+    (let [id (:system/id m)]
       (some->> [:system/id id]
                (d/entity (get-db))
                touch))))
