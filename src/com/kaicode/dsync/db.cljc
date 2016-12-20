@@ -24,57 +24,80 @@
 
 (declare conn)
 
-#?(:cljs (def when-ds-ready (m/whenever :datascript/ready)))
+#?(:clj
+   (do
+     (mount/defstate env :start (load-config
+                                 :merge
+                                 [(mount/args)
+                                  (source/from-system-props)
+                                  (source/from-env)
+                                  (source/from-resource "schema.edn")
+                                  (source/from-resource "test.data.edn")]))
+     
+     (defn disconnect [conn]
+       (let [url (env :db-url)]
+         (log/info "disconnecting from " url)
+         (.release conn)
+         (d/delete-database url)))
+
+     (defn tempid []
+       (d/tempid :db.part/user))
+
+     (mount/defstate conn
+       :start  (let [url (env :db-url)
+                     db-created? (d/create-database url)
+                     conn (d/connect url)]
+                 (log/info "url" url)
+                 (log/info "db-created?" db-created?)
+                 (when db-created?
+                   (let [schema (env :datomic-schema)
+                         test-data (env :test-data)]
+                     (if schema
+                       (do
+                         (log/debug "schema" schema)
+                         (d/transact conn schema))
+                       (log/fatal "no schema defined"))
+
+                     (if test-data
+                       (do
+                         (log/debug "test-data" test-data)
+                         (d/transact conn test-data))
+                       (log/debug "no test-data defined"))))
+                 conn)
+       :stop  (disconnect conn))))
 
 #?(:cljs
-   (m/on :schema/avaiable (fn [[_ schema]]
-                            (def conn (d/create-conn schema))
-                            (m/broadcast [:datascript/ready conn]))))
+   (do
+     (def when-ds-ready (m/whenever :datascript/ready))
 
-#?(:cljs (ws/send! [:export-schema true]))
+     (m/on :schema/avaiable (fn [[_ schema]]
+                              (def conn (d/create-conn schema))
+                              (m/broadcast [:datascript/ready conn])))
 
-#?(:clj
-   (mount/defstate env :start (load-config
-                               :merge
-                               [(mount/args)
-                                (source/from-system-props)
-                                (source/from-env)
-                                (source/from-resource "schema.edn")
-                                (source/from-resource "test.data.edn")])))
-#?(:clj
-   (defn disconnect [conn]
-     (let [url (env :db-url)]
-       (log/info "disconnecting from " url)
-       (.release conn)
-       (d/delete-database url))))
-
-#?(:clj
-   (defn tempid []
-     (d/tempid :db.part/user)))
-
-#?(:clj
-   (mount/defstate conn
-     :start  (let [url (env :db-url)
-                   db-created? (d/create-database url)
-                   conn (d/connect url)]
-               (log/info "url" url)
-               (log/info "db-created?" db-created?)
-               (when db-created?
-                 (let [schema (env :datomic-schema)
-                       test-data (env :test-data)]
-                   (if schema
-                     (do
-                       (log/debug "schema" schema)
-                       (d/transact conn schema))
-                     (log/fatal "no schema defined"))
-
-                   (if test-data
-                     (do
-                       (log/debug "test-data" test-data)
-                       (d/transact conn test-data))
-                     (log/debug "no test-data defined"))))
-               conn)
-     :stop  (disconnect conn)))
+     (ws/send! [:export-schema true])
+     
+     (defonce query-params->channel (atom {}))
+     (defonce query-params-queue (atom []))
+     (defn q-channel
+       "like q except returns a channel containing the result of the (q params)"
+       [& params]
+       (let [channel (or (@query-params->channel params)
+                         (let [new-channel (chan 2)]
+                           (tily/set-atom! query-params->channel [params] new-channel)
+                           new-channel))
+             q-params (tily/insert-at params 1 (get-db))]
+         (go (>! channel (apply d/q q-params)))
+         channel))
+     
+     (go-loop []
+       (doseq [query-params (distinct @query-params-queue)
+               :let [q-params (tily/insert-at query-params 1 (get-db))
+                     channel (@query-params->channel query-params)]]
+         
+         (>! channel (apply d/q q-params)))
+       (reset! query-params-queue [])
+       (<! (a/timeout 2000))
+       (recur))))
 
 (defn get-db []
   #?(:clj (d/db conn))
@@ -124,23 +147,6 @@
                                      (= :in %)
                                      (= :where %))))))
 
-#?(:cljs
-   (defonce query-params->channel (atom {})))
-
-#?(:cljs
-   (defonce query-params-queue (atom [])))
-
-#?(:cljs
-   (go-loop []
-     (doseq [query-params (distinct @query-params-queue)
-             :let [q-params (tily/insert-at query-params 1 (get-db))
-                   channel (@query-params->channel query-params)]]
-       
-       (>! channel (apply d/q q-params)))
-     (reset! query-params-queue [])
-     (<! (a/timeout 2000))
-     (recur)))
-
 (defn transact [tx]
   #?(:clj (d/transact conn tx))
   #?(:cljs (let [tx-report (d/transact! conn tx)
@@ -159,18 +165,6 @@
                      :when (run-query? query-kws)]
                (swap! query-params-queue conj query-params))
              tx-report)))
-
-#?(:cljs
-   (defn q-channel
-     "like q except returns a channel containing the result of the (q params)"
-     [& params]
-     (let [channel (or (@query-params->channel params)
-                       (let [new-channel (chan 2)]
-                         (tily/set-atom! query-params->channel [params] new-channel)
-                         new-channel))
-           q-params (tily/insert-at params 1 (get-db))]
-       (go (>! channel (apply d/q q-params)))
-       channel)))
 
 (defn touch [e]
   (d/touch e))
