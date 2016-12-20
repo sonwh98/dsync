@@ -128,16 +128,16 @@
    (defonce query-params->channel (atom {})))
 
 #?(:cljs
-   (defonce query-params-buffer (atom [])))
+   (defonce query-params-queue (atom [])))
 
 #?(:cljs
    (go-loop []
-     (doseq [query-params (distinct @query-params-buffer)
+     (doseq [query-params (distinct @query-params-queue)
              :let [q-params (tily/insert-at query-params 1 (get-db))
                    channel (@query-params->channel query-params)]]
        
        (>! channel (apply d/q q-params)))
-     (reset! query-params-buffer [])
+     (reset! query-params-queue [])
      (<! (a/timeout 2000))
      (recur)))
 
@@ -157,7 +157,7 @@
                      :let [query (first query-params)
                            query-kws (extract-entity-kw query)]
                      :when (run-query? query-kws)]
-               (swap! query-params-buffer conj query-params))
+               (swap! query-params-queue conj query-params))
              tx-report)))
 
 #?(:cljs
