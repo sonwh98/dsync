@@ -1,4 +1,4 @@
-(ns com.kaicode.dsync.server
+(ns com.kaicode.dsync
   (:require [datomic.api :as d]
             [com.kaicode.dsync.db :as db]
             [com.kaicode.wocket.server :as ws :refer [process-msg]]

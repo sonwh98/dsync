@@ -1,4 +1,4 @@
-(ns com.kaicode.dsync.client
+(ns com.kaicode.dsync
   (:require-macros [cljs.core.async.macros :refer [go-loop go]])
   (:require [com.kaicode.wocket.client :as ws :refer [process-msg]]
             [cljs.core.async :refer [<! >! put! chan]]
