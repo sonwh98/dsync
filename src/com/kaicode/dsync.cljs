@@ -46,23 +46,6 @@
             tx-report (db/transact result)]
         tx-report)))
 
-(defn default-save-fn [content row column-kw]
-  (let [old-content (column-kw @row)
-        content (clojure.string/trim content)]
-    (when-not (= content old-content)
-      (let [sys-id (:system/id @row)
-            new-datom {column-kw content}
-            tx (if sys-id
-                 (merge new-datom {:system/id sys-id})
-                 (let [sys-id (db/system-id)]
-                   (merge new-datom {:system/id sys-id
-                                     :system/time-created (js/Date.)})))]
-        (try
-          (remote-transact [tx])
-          (catch js/Error e (do
-                              (tily/set-atom! row [column-kw] " ")
-                              (throw e))))))))
-
 (defn delete-rows-fn [rows]
   (println "delete ros")
   (let [transactions (vec (for [r rows]
