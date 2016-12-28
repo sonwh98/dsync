@@ -169,7 +169,8 @@
              tx-report)))
 
 (defn touch [e]
-  (d/touch e))
+  (when e
+    (d/touch e)))
 
 (defn- create-pull [pattern]
   (concat '(pull ?e) [pattern]))
@@ -207,7 +208,7 @@
                touch))))
 
 (defn entity->map [e]
-  (into {} e))
+  (into {} (touch e)))
 
 (comment
   (q '[:find ?e :in $ ?namespace :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "item")]] namespace)
