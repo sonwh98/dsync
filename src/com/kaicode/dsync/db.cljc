@@ -188,16 +188,6 @@
         (entity? v) (touch-all (a e)))))
   e)
 
-;; (defn touch-all
-;;   "Touches `entity and all other reachable Entities of `entity"
-;;   [e]
-;;   (if (instance? datomic.query.EntityMap e)
-;;     (reduce (fn [m [k v]]
-;;               (assoc m k (touch-all v)))
-;;             {}
-;;             (d/touch e))
-;;     e))
-
 (defn- create-pull [pattern]
   (concat '(pull ?e) [pattern]))
 
@@ -233,14 +223,10 @@
                (d/entity (get-db))
                touch-all))))
 
-;; (defn entity->map [e]
-;;   (into {} (touch e)))
-
 (defn entity->map [e]
   (cond
     (or
-     (-> e class .toString (clojure.string/split #" ") second (= "datomic.query.EntityMap"))
-     (map? e)) (reduce-kv (fn [m k v] (assoc m k (entity->map v))) {} (into {} e))
+     (entity? e) (map? e)) (reduce-kv (fn [m k v] (assoc m k (entity->map v))) {} (into {} e))
     (coll? e) (map entity->map e)
     :else e))
 
