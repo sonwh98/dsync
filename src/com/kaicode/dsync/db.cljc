@@ -169,8 +169,34 @@
              tx-report)))
 
 (defn touch [e]
+  (prn "touch" (type e))
   (when e
     (d/touch e)))
+
+(defn entity? [e]
+  #?(:cljs (=  datascript.impl.entity/Entity (type e)))
+  #?(:clj (= datomic.query.EntityMap (type e))))
+
+(defn touch-all [e]
+  "touch the entity e and all referenced entities recursively"
+  (when (entity? e)
+    (d/touch e)
+    (doseq [[a v] e]
+      (cond
+        (set? v) (doseq [e2 (a e)]
+                   (touch-all e2))
+        (entity? v) (touch-all (a e)))))
+  e)
+
+;; (defn touch-all
+;;   "Touches `entity and all other reachable Entities of `entity"
+;;   [e]
+;;   (if (instance? datomic.query.EntityMap e)
+;;     (reduce (fn [m [k v]]
+;;               (assoc m k (touch-all v)))
+;;             {}
+;;             (d/touch e))
+;;     e))
 
 (defn- create-pull [pattern]
   (concat '(pull ?e) [pattern]))
@@ -205,10 +231,18 @@
     (let [id (:system/id m)]
       (some->> [:system/id id]
                (d/entity (get-db))
-               touch))))
+               touch-all))))
+
+;; (defn entity->map [e]
+;;   (into {} (touch e)))
 
 (defn entity->map [e]
-  (into {} (touch e)))
+  (cond
+    (or
+     (-> e class .toString (clojure.string/split #" ") second (= "datomic.query.EntityMap"))
+     (map? e)) (reduce-kv (fn [m k v] (assoc m k (entity->map v))) {} (into {} e))
+    (coll? e) (map entity->map e)
+    :else e))
 
 (comment
   (q '[:find ?e :in $ ?namespace :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "item")]] namespace)
