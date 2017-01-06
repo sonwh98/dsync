@@ -47,7 +47,6 @@
         tx-report)))
 
 (defn delete-rows-fn [rows]
-  (println "delete ros")
-  (let [transactions (vec (for [r rows]
-                            [:db.fn/retractEntity [:system/id (:system/id r)]]))]
-    (remote-transact transactions)))
+  (let [tx (vec (for [r rows]
+                  [:db.fn/retractEntity [:system/id (:system/id r)]]))]
+    (transact tx)))
