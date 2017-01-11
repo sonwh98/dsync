@@ -50,3 +50,12 @@
   (let [tx (vec (for [r rows]
                   [:db.fn/retractEntity [:system/id (:system/id r)]]))]
     (transact tx)))
+
+(defn data-loop [{:keys [datomic-query-n-params datascript-query-n-params on-data-available]}]
+  (db/when-ds-ready #(let [ds-tx-report-channel (apply datomic->datascript datomic-query-n-params)]
+                       (go (let [tx-report (<! ds-tx-report-channel)
+                                 q-result-channel (apply db/q-channel (or datascript-query-n-params datomic-query-n-params ))]
+                             (go-loop []
+                               (let [result (<! q-result-channel)]
+                                 (on-data-available result))
+                               (recur)))))))
