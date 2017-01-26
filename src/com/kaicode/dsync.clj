@@ -58,7 +58,9 @@
                       (cond
                         (number? x) (double x)
                         (string? x) (try
-                                      (Double/parseDouble x)
+                                      (if (empty? x)
+                                        0.0
+                                        (Double/parseDouble x))
                                       (catch Exception e
                                         :clojure.spec/invalid))
                         :else :clojure.spec/invalid))
