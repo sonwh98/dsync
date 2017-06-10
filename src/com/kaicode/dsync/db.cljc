@@ -7,9 +7,6 @@
             #?(:clj [cprop.core :refer [load-config]])
             #?(:clj [cprop.source :as source])
             
-            #?(:clj [clojure.pprint :as pp])
-            #?(:cljs [cljs.pprint :as pp])
-            
             #?(:clj [clojure.tools.logging :as log])
 
             #?(:cljs [cljs-uuid-utils.core :as uuid])
