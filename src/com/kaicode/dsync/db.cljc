@@ -89,7 +89,7 @@
                          (let [new-channel (chan 2)]
                            (tily/set-atom! query-params->channel [params] new-channel)
                            new-channel))
-             q-params (tily/insert-at params 1 (get-db))]
+             q-params (tily/insert-at (vec params) 1 (get-db))]
          (go (>! channel (apply d/q q-params)))
          channel))
      
