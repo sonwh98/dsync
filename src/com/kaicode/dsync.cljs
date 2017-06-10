@@ -27,7 +27,7 @@
   (remote-transact tx))
 
 (defmethod process-msg :schema [[_ schema-from-datomic]]
-  (m/broadcast [:schema/avaiable schema-from-datomic]))
+  (m/broadcast [:schema/available schema-from-datomic]))
 
 (defmethod process-msg :transact [[_ tx]]
   (db/transact tx))
