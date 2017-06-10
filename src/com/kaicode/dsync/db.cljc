@@ -92,7 +92,7 @@
      
      (go-loop []
        (doseq [query-params (distinct @query-params-queue)
-               :let [q-params (tily/insert-at query-params 1 (get-db))
+               :let [q-params (tily/insert-at (vec query-params) 1 (get-db))
                      channel (@query-params->channel query-params)]]
          
          (>! channel (apply d/q q-params)))
@@ -117,7 +117,7 @@
   "wrapper around d/q so that you don't have to pass in the current database"
   [& params]
   (let [params (into [] params)
-        params (tily/insert-at params 1 (get-db))]
+        params (tily/insert-at (vec params) 1 (get-db))]
     (apply d/q params)))
 
 (defn conjugate [kw]
