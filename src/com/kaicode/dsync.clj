@@ -5,7 +5,7 @@
             [com.kaicode.mercury :as m]
             [clojure.walk :as w]
             [clojure.tools.logging :as log]
-            [clojure.spec :as s]))
+            [clojure.spec.alpha :as s]))
 
 (defn entity [id]
   (d/entity (db/get-db) id))
@@ -62,8 +62,8 @@
                                         0.0
                                         (Double/parseDouble x))
                                       (catch Exception e
-                                        :clojure.spec/invalid))
-                        :else :clojure.spec/invalid))
+                                        ::s/invalid))
+                        :else ::s/invalid))
       c (s/conformer coerce-double)]
   (s/def :item/price c)
   (s/def :product/amount c))
