@@ -74,9 +74,9 @@
    (do
      (def when-ds-ready (m/whenever :datascript/ready))
 
-     (m/on :schema/avaiable (fn [[_ schema]]
-                              (def conn (d/create-conn schema))
-                              (m/broadcast [:datascript/ready conn])))
+     (m/on :schema/available (fn [[_ schema]]
+                               (def conn (d/create-conn schema))
+                               (m/broadcast [:datascript/ready conn])))
 
      (ws/send! [:export-schema true])
      
