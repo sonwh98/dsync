@@ -62,8 +62,8 @@
                                         0.0
                                         (Double/parseDouble x))
                                       (catch Exception e
-                                        :clojure.spec.alpha/invalid))
-                        :else :clojure.spec.alpha/invalid))
+                                        ::s/invalid))
+                        :else ::s/invalid))
       c (s/conformer coerce-double)]
   (s/def :item/price c)
   (s/def :product/amount c))

@@ -7,9 +7,6 @@
             #?(:clj [cprop.core :refer [load-config]])
             #?(:clj [cprop.source :as source])
             
-            #?(:clj [clojure.pprint :as pp])
-            #?(:cljs [cljs.pprint :as pp])
-            
             #?(:clj [clojure.tools.logging :as log])
 
             #?(:cljs [cljs-uuid-utils.core :as uuid])
@@ -74,9 +71,9 @@
    (do
      (def when-ds-ready (m/whenever :datascript/ready))
 
-     (m/on :schema/avaiable (fn [[_ schema]]
-                              (def conn (d/create-conn schema))
-                              (m/broadcast [:datascript/ready conn])))
+     (m/on :schema/available (fn [[_ schema]]
+                               (def conn (d/create-conn schema))
+                               (m/broadcast [:datascript/ready conn])))
 
      (ws/send! [:export-schema true])
      
@@ -89,13 +86,13 @@
                          (let [new-channel (chan 2)]
                            (tily/set-atom! query-params->channel [params] new-channel)
                            new-channel))
-             q-params (tily/insert-at params 1 (get-db))]
+             q-params (tily/insert-at (vec params) 1 (get-db))]
          (go (>! channel (apply d/q q-params)))
          channel))
      
      (go-loop []
        (doseq [query-params (distinct @query-params-queue)
-               :let [q-params (tily/insert-at query-params 1 (get-db))
+               :let [q-params (tily/insert-at (vec query-params) 1 (get-db))
                      channel (@query-params->channel query-params)]]
          
          (>! channel (apply d/q q-params)))
@@ -120,7 +117,7 @@
   "wrapper around d/q so that you don't have to pass in the current database"
   [& params]
   (let [params (into [] params)
-        params (tily/insert-at params 1 (get-db))]
+        params (tily/insert-at (vec params) 1 (get-db))]
     (apply d/q params)))
 
 (defn conjugate [kw]
