@@ -52,13 +52,13 @@
                      (if schema
                        (do
                          (log/debug "schema" schema)
-                         (d/transact conn schema))
+                         @(d/transact conn schema))
                        (log/fatal "no schema defined"))
 
                      (if test-data
                        (do
                          (log/debug "test-data" test-data)
-                         (d/transact conn test-data))
+                         @(d/transact conn test-data))
                        (log/debug "no test-data defined"))))
                  conn)
        :stop  (disconnect conn))))
