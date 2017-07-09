@@ -41,7 +41,7 @@
     channel))
 
 (defn datomic->datascript [query & params]
-  (go (let [in-result-channel (remote-q-channel query params)
+  (go (let [in-result-channel (apply remote-q-channel (into [query] params))
             result (<! in-result-channel)
             tx-report (db/transact result)]
         tx-report)))
