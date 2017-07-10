@@ -46,7 +46,7 @@
                      conn (d/connect url)]
                  (log/info "url" url)
                  (log/info "db-created?" db-created?)
-                 (when db-created?
+                 (when-not (env :production)
                    (let [schema (env :datomic-schema)
                          test-data (env :test-data)]
                      (if schema
