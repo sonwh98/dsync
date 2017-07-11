@@ -46,7 +46,7 @@
                      conn (d/connect url)]
                  (log/info "url" url)
                  (log/info "db-created?" db-created?)
-                 (when-not (env :production)
+                 (if db-created?
                    (let [schema (env :datomic-schema)
                          test-data (env :test-data)]
                      (if schema
@@ -55,11 +55,12 @@
                          @(d/transact conn schema))
                        (log/fatal "no schema defined"))
 
-                     (if test-data
-                       (do
-                         (log/debug "test-data" test-data)
-                         @(d/transact conn test-data))
-                       (log/debug "no test-data defined"))))
+                     (when-not (env :production)
+                       (if test-data
+                         (do
+                           (log/debug "test-data" test-data)
+                           @(d/transact conn test-data))
+                         (log/debug "no test-data defined")))))
                  conn)
        :stop  (disconnect conn))))
 
