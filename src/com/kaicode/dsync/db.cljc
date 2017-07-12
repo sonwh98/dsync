@@ -44,8 +44,8 @@
        :start  (let [url (env :db-url)
                      db-created? (d/create-database url)
                      conn (d/connect url)]
-                 (log/info "url" url)
-                 (log/info "db-created?" db-created?)
+                 (prn "db-url" url)
+                 (prn "db-created?" db-created?)
                  (if db-created?
                    (let [schema (env :datomic-schema)
                          test-data (env :test-data)]
@@ -62,7 +62,8 @@
                            @(d/transact conn test-data))
                          (log/debug "no test-data defined")))))
                  conn)
-       :stop  (disconnect conn))))
+       :stop  (prn "stop conn") ;;(disconnect conn)
+       )))
 
 (defn get-db []
   #?(:clj (d/db conn))
