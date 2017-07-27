@@ -1,4 +1,4 @@
-(defproject com.kaicode/dsync "0.1.0-SNAPSHOT"
+(defproject com.kaicode/dsync "0.1.1-SNAPSHOT"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -13,5 +13,6 @@
                  [datomic-schema "1.3.0"]
                  [datascript "0.16.1"]
                  [com.kaicode/wocket "0.1.3-SNAPSHOT"]
-                 [com.kaicode/mercury "0.1.2-SNAPSHOT"]]
+                 [com.kaicode/mercury "0.1.2-SNAPSHOT"]
+                 [com.kaicode/tily "0.1.6-SNAPSHOT"]]
   :target-path "target/%s")
