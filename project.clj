@@ -12,5 +12,6 @@
                  [datomic-schema "1.3.0"]
                  [datascript "0.15.4"]
                  [com.kaicode/wocket "0.1.3-SNAPSHOT"]
-                 [com.kaicode/mercury "0.1.2-SNAPSHOT"]]
+                 [com.kaicode/mercury "0.1.2-SNAPSHOT"]
+                 [io.replikativ/konserve "0.4.10"]]
   :target-path "target/%s")
