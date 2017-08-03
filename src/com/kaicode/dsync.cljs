@@ -4,9 +4,14 @@
             [cljs.core.async :refer [<! >! put! chan]]
             [com.kaicode.dsync.db :as db]
             [com.kaicode.mercury :as m]
-            [com.kaicode.tily :as tily]))
+            [com.kaicode.tily :as tily]
+            [konserve.core :as k]
+            [konserve.indexeddb :refer [new-indexeddb-store]]))
 
 (def query->channel (atom {}))
+
+(declare datascript-schema-store)
+(go (defonce datascript-schema-store (<! (new-indexeddb-store "datascript-schema-store"))))
 
 (defmethod process-msg :remote-transact-error [[tx error]]
   (m/broadcast [tx error]))
@@ -27,7 +32,14 @@
   (remote-transact tx))
 
 (defmethod process-msg :schema [[_ schema-from-datomic]]
-  (m/broadcast [:schema/available schema-from-datomic]))
+  (go
+    (defonce datascript-schema-store (<! (new-indexeddb-store "datascript-schema-store")))
+    (let [stored-schema (<! (k/get-in datascript-schema-store [:schema]))]
+      (prn "stored-schema?" (not (empty? stored-schema)))
+      (when (not=  stored-schema schema-from-datomic)
+        (prn "storing schema")
+        (k/assoc-in datascript-schema-store [:schema] schema-from-datomic))
+      (m/broadcast [:schema/available schema-from-datomic]))))
 
 (defmethod process-msg :transact [[_ tx]]
   (db/transact tx))
