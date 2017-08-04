@@ -13,7 +13,7 @@
             #?(:cljs [com.kaicode.mercury :as m])
             
             #?(:cljs [com.kaicode.wocket.client :as ws])
-
+            
             [com.kaicode.tily :as tily]
             [mount.core :as mount]
             [clojure.core.async :as a :refer [<! >! chan]]
@@ -77,7 +77,7 @@
                                (def conn (d/create-conn schema))
                                (m/broadcast [:datascript/ready conn])))
 
-     (ws/send! [:export-schema true])
+     (ws/whenever-websocket-connected (ws/send! [:export-schema true]))
      
      (defonce query-params->channel (atom {}))
      (defonce query-params-queue (atom []))
@@ -101,8 +101,6 @@
        (reset! query-params-queue [])
        (<! (a/timeout 2000))
        (recur))))
-
-
 
 (defn squuid []
   #?(:clj (str (d/squuid)))
