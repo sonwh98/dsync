@@ -15,5 +15,5 @@
                  [com.kaicode/wocket "0.1.3-SNAPSHOT"]
                  [com.kaicode/mercury "0.1.2-SNAPSHOT"]
                  [com.kaicode/tily "0.1.6-SNAPSHOT"]
-                 [io.replikativ/konserve "0.4.10"]]
+                 ]
   :target-path "target/%s")
