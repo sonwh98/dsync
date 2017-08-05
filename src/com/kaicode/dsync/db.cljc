@@ -150,22 +150,22 @@
 
 (defn transact [tx]
   #?(:clj (d/transact conn tx))
-  #?(:cljs (let [tx-report (d/transact! conn tx)
-                 tx-kws (extract-entity-kw tx)
-                 run-query? (fn [query-kws]
-                              (let [r (some (fn [tx-kw]
-                                              (or (tily/is-contained? tx-kw :in query-kws)
-                                                  (tily/is-contained? (conjugate tx-kw) :in query-kws)
-                                                  (= tx-kw :db.fn/retractEntity)))
-                                            tx-kws)]
-                                ;;(println r ": " tx-kws query-kws)
-                                r))]
-             (doseq [[query-params channel] @query-params->channel
-                     :let [query (first query-params)
-                           query-kws (extract-entity-kw query)]
-                     :when (run-query? query-kws)]
-               (swap! query-params-queue conj query-params))
-             tx-report)))
+  #?(:cljs (when-ds-ready #(let [tx-report (d/transact! conn tx)
+                                 tx-kws (extract-entity-kw tx)
+                                 run-query? (fn [query-kws]
+                                              (let [r (some (fn [tx-kw]
+                                                              (or (tily/is-contained? tx-kw :in query-kws)
+                                                                  (tily/is-contained? (conjugate tx-kw) :in query-kws)
+                                                                  (= tx-kw :db.fn/retractEntity)))
+                                                            tx-kws)]
+                                                ;;(println r ": " tx-kws query-kws)
+                                                r))]
+                             (doseq [[query-params channel] @query-params->channel
+                                     :let [query (first query-params)
+                                           query-kws (extract-entity-kw query)]
+                                     :when (run-query? query-kws)]
+                               (swap! query-params-queue conj query-params))
+                             tx-report))))
 
 (defn touch [e]
   (prn "touch" (type e))
