@@ -72,12 +72,15 @@
 #?(:cljs
    (do
      (def when-ds-ready (m/whenever :datascript/ready))
-
+     (ws/connect-to-websocket-server)
+     (m/on :websocket/socket-channel (fn [[_ socket-channel]]
+                                       (ws/send! [:export-schema true])))
      (m/on :schema/available (fn [[_ schema]]
                                (def conn (d/create-conn schema))
                                (m/broadcast [:datascript/ready conn])))
+     
 
-     (ws/send! [:export-schema true])
+     
      
      (defonce query-params->channel (atom {}))
      (defonce query-params-queue (atom []))
