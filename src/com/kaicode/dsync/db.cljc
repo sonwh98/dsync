@@ -72,16 +72,17 @@
 #?(:cljs
    (do
      (def when-ds-ready (m/whenever :datascript/ready))
-     ;;(ws/connect-to-websocket-server)
-     (m/on :websocket/socket-channel (fn [[_ socket-channel]]
-                                       (if-not conn
-                                         (ws/send! [:export-schema true]))))
-     (m/on :schema/available (fn [[_ schema]]
-                               (prn "got schema")
-                               (def conn (d/create-conn schema))
-                               (m/broadcast [:datascript/ready conn])))
-     
-
+     (defn init []
+       (ws/connect-to-websocket-server)
+       (let [ws-connected-chan (m/subscribe-to :websocket/connected)
+             schema-available-chan (m/subscribe-to :schema/available)]
+         (go (let [schema (<! schema-available-chan)]
+               (prn "got schema")
+               (def conn (d/create-conn schema))
+               (m/broadcast [:datascript/ready true])))
+         (go
+           (<! ws-connected-chan)
+           (ws/send! [:export-schema true]))))
      
      
      (defonce query-params->channel (atom {}))
