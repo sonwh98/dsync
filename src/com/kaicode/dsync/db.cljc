@@ -76,8 +76,7 @@
        (ws/connect-to-websocket-server)
        (let [ws-connected-chan (m/subscribe-to :websocket/connected)
              schema-available-chan (m/subscribe-to :schema/available)]
-         (go (let [schema (<! schema-available-chan)]
-               (prn "got schema")
+         (go (let [ [_ schema] (<! schema-available-chan)]
                (def conn (d/create-conn schema))
                (m/broadcast [:datascript/ready true])))
          (go
