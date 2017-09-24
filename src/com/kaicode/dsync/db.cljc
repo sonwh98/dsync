@@ -228,11 +228,12 @@
                touch-all))))
 
 (defn entity->map [e]
-  (cond
-    (or
-     (entity? e) (map? e)) (reduce-kv (fn [m k v] (assoc m k (entity->map v))) {} (into {} e))
-    (coll? e) (map entity->map e)
-    :else e))
+  (w/prewalk
+    (fn [x]
+      (if (entity? x)
+        (into {} x)
+        x))
+    e))
 
 (comment
   (q '[:find ?e :in $ ?namespace :where [?e ?a] [(?namespace ?a) ?ns] [(= ?ns "item")]] namespace)
