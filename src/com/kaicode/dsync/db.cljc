@@ -154,7 +154,7 @@
                                      (= :where %))))))
 
 (defn transact [tx]
-  #?(:clj (d/transact conn tx))
+  #?(:clj @(d/transact conn tx))
   #?(:cljs (when-ds-ready #(let [tx-report (d/transact! conn tx)
                                  tx-kws (extract-entity-kw tx)
                                  run-query? (fn [query-kws]
