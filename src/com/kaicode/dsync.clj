@@ -66,7 +66,10 @@
                         :else ::s/invalid))
       c (s/conformer coerce-double)]
   (s/def :item/price c)
-  (s/def :product/amount c))
+  (s/def :product/amount c)
+  (s/def :gps/lat c)
+  (s/def :gps/lng c)
+  )
 
 
 (defn number->double [m]
@@ -75,6 +78,8 @@
                   (cond
                     (contains? m :product/amount) (update-in m [:product/amount] #(s/conform :product/amount %))
                     (contains? m :item/price) (update-in m [:item/price] #(s/conform :item/price %))
+                    (contains? m :gps/lat) (update-in m [:gps/lat] #(s/conform :gps/lat %))
+                    (contains? m :gps/lng) (update-in m [:gps/lng] #(s/conform :gps/lng %))
                     :else m)
                   m))
               m))
