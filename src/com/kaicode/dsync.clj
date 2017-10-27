@@ -76,10 +76,10 @@
   (w/postwalk (fn [m]
                 (if (map? m)
                   (cond
-                    (contains? m :product/amount) (update-in m [:product/amount] #(s/conform :product/amount %))
-                    (contains? m :item/price) (update-in m [:item/price] #(s/conform :item/price %))
-                    (contains? m :gps/lat) (update-in m [:gps/lat] #(s/conform :gps/lat %))
-                    (contains? m :gps/lng) (update-in m [:gps/lng] #(s/conform :gps/lng %))
+                    (contains? m :product/amount) (assoc m :product/amount (s/conform :product/amount (:product/amount m)))
+                    (contains? m :item/price) (assoc m :item/price (s/conform :item/price (:item/price m)))
+                    (contains? m :gps/lat) (assoc m :gps/lat (s/conform :gps/lat (:gps/lat m)))
+                    (contains? m :gps/lng) (assoc m :gps/lng (s/conform :gps/lng (:gps/lng m)))
                     :else m)
                   m))
               m))
