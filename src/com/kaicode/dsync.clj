@@ -54,24 +54,6 @@
                   m))
               m))
 
-(let [coerce-double (fn [x]
-                      (cond
-                        (number? x) (double x)
-                        (string? x) (try
-                                      (if (empty? x)
-                                        0.0
-                                        (Double/parseDouble x))
-                                      (catch Exception e
-                                        ::s/invalid))
-                        :else ::s/invalid))
-      c (s/conformer coerce-double)]
-  (s/def :item/price c)
-  (s/def :product/amount c)
-  (s/def :gps/lat c)
-  (s/def :gps/lng c)
-  )
-
-
 (defn number->double [m]
   (w/postwalk (fn [m]
                 (if (map? m)
