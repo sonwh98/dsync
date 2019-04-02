@@ -1,16 +1,7 @@
 # dsync
 
-FIXME: description
-
-## Installation
-
-Download from http://example.com/FIXME.
-
-## Usage
-
-FIXME: explanation
-
-    $ java -jar dsync-0.1.0-standalone.jar [args]
+DataScript <-> Datomic data sync.  DataScript is used to cache datomic queries. Datalog queries are local
+in the browser.
 
 ## Options
 
